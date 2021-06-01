@@ -10,9 +10,9 @@ from torch.utils.tensorboard import SummaryWriter
 import torch.backends.cudnn
 import time
 
-from generation.tags.visual_linguistic.data_helper import MyDataSet, collate_func, DataPrepare, LoadDataFromSource
-from generation.tags.visual_linguistic import config as hyper_args
-from generation.tags.visual_linguistic.model import MyModel
+from data_helper import MyDataSet, collate_func, DataPrepare
+import config as hyper_args
+from model import build_model
 from utils.task_logger import TaskLogger
 from utils.data_io import mkdir
 
@@ -215,7 +215,7 @@ def train():
     os.environ["CUDA_VISIBLE_DEVICE"] = hyper_args.DEVICE_IDs
     # 实例化GPT2LMHeadModel模型，这里我们没有加载预训练好的模型，而是直接从头开始训练。
     # 判断是否使用预训练好的GPT2模型
-    model = MyModel(logger=logger).load_model()
+    model = build_model().load_model()
     # 创建模型的输出目录
     mkdir(hyper_args.MODEL_OUTPUT_PATH)
 

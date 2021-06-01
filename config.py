@@ -12,11 +12,10 @@ MIN_CONTENT_LENGTH = 64
 MAX_CONTENT_LENGTH = 2500
 MIN_TAGS_NUM = 2
 MAX_TAGS_NUM = 6
-SOURCE_DATA_PATH = "./generation/tags/visual_linguistic/data/"
+SOURCE_DATA_PATH = "./data/"
 SOURCE_DATA_FILE = f"{SOURCE_DATA_PATH}multi_tags_data_exp_{EXP_NUMBER}.dat.json"
-LEGAL_TAGS_PATH = f'./generation/tags/visual_linguistic/data/tags_exp_{EXP_NUMBER}.dat.json'
-CLEAN_CACHE_DATA = False
-CLEAN_TOKENIZE = False  # 是否处理数据，否则直接使用处理好的数据
+LEGAL_TAGS_PATH = f'./data/tags_exp_{EXP_NUMBER}.dat.json'
+RAW = False  # 是否token数据，False则加载上次token好的cache
 
 MAX_TAGS_LENGTH = 50
 
@@ -29,25 +28,16 @@ assert MAX_CONTENT_LENGTH - N_CTX >= 100
 DEVICE_IDs = '0'
 DEVICE_TYPE = torch.device("cuda" if torch.cuda.is_available() and int(DEVICE_IDs) >= 0 else "cpu")
 
-VOCAB_PATH = './generation/tags/visual_linguistic/data/vocab.txt'
+VOCAB_PATH = './data/vocab.txt'
 
 
 def get_path():
-    return './generation/tags/visual_linguistic/data/image/{}.png'.format(int(round(time.time() * 1000)))
+    return './data/train_image/{}.png'.format(int(round(time.time() * 1000)))
 
 
 def get_path_predict():
-    return './generation/tags/visual_linguistic/data/image_predict/{}.png'.format(int(round(time.time() * 1000)))
+    return './data/image_predict/{}.png'.format(int(round(time.time() * 1000)))
 
-
-TAGS_BLACK_SET_PATH = './generation/tags/visual_linguistic/data/blacklist_tags.json'
-with open(TAGS_BLACK_SET_PATH, 'r') as f:
-    TAGS_BLACK_SET = set(json.load(f))
-
-TAGS_MAPPING_PATH = './generation/tags/visual_linguistic/data/tags_mapping.json'
-
-with open(TAGS_MAPPING_PATH, 'r') as f:
-    TAGS_MAPPING_DICT = json.load(f)
 
 TOKENIZER = BertTokenizer(vocab_file=VOCAB_PATH, do_lower_case=True)  # 初始化tokenizer
 # 将[space]作为一个分割整体，例如："我爱[Space]中国。"，使用原始tokenizer分词结果为"['我', '爱', '[', 'Space', ']', '中', '国', '。']";
@@ -63,8 +53,8 @@ SEP_ID = TOKENIZER.convert_tokens_to_ids("[SEP]")
 COMMENT_ID = TOKENIZER.convert_tokens_to_ids("[Comment]")
 IMG_ID = TOKENIZER.convert_tokens_to_ids("[IMG]")
 
-DATA_CACHE_PATH = './generation/tags/visual_linguistic/data/cached_data.cache'  # 生成缓存数据的存放路径
-MODEL_CONFIG_PATH = './generation/tags/visual_linguistic/data/config.json'
+DATA_CACHE_PATH = './data/cached_data.cache'  # 生成缓存数据的存放路径
+MODEL_CONFIG_PATH = './data/config.json'
 N_HEAD = 12
 # N_HEAD = 12
 N_LAYER = 10
@@ -74,7 +64,7 @@ MULTI_GPU = False
 
 # PRETRAINED_MODEL_PATH = './generation/tags/v2/output_model/checkpoint-2021-03-02-11-28-01/'
 # PRETRAINED_MODEL_PATH = './generation/tags/v2/output_model/checkpoint-5-2021-04-09-11-29-21/'
-PRETRAINED_MODEL_PATH = './generation/tags/visual_linguistic/output_model/checkpoint-7-2021-05-25-13-53-07/'
+PRETRAINED_MODEL_PATH = './output_model/checkpoint-7-2021-05-25-13-53-07/'
 
 # PRETRAINED_MODEL_PATH = None  # '预训练的GPT2模型的路径', GPT2介于预训练直接做任务之间，是否需要预训练未知
 EPOCHS = 50
@@ -87,13 +77,13 @@ LOGGING_STEPS = 20
 EVAL_STEPS = 4000
 GRADIENT_ACCUMULATION_STEPS = 4  # '梯度积累'
 MAX_GRAD_NORM = 1.0
-MODEL_OUTPUT_PATH = './generation/tags/visual_linguistic/output_model/'
+MODEL_OUTPUT_PATH = './output_model/'
 
 REPETITION_PENALTY = 1.2  # 重复处罚率
 TOP_K = 5  # 解码时保留概率最高的多少个标记
 TOP_P = 0.95  # 解码时保留概率累加大于多少的标记
 
-MODEL_PREDICT_PATH = "./generation/tags/visual_linguistic/output_model/checkpoint-1-2021-05-26-21-42-19/"
-PREDICT_FILE = './generation/tags/visual_linguistic/data/real_test.json'
+MODEL_PREDICT_PATH = "./output_model/checkpoint-1-2021-05-26-21-42-19/"
+PREDICT_FILE = './data/real_test.json'
 GEN_TIMES = 5
 BATCH_SIZE = 1
