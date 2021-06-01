@@ -204,8 +204,7 @@ def train():
     logger = TaskLogger(task_name='train vl multi tags', log_root=None).root_logger
 
     # 加载训练数据和测试数据
-    source_data = LoadDataFromSource(logger).load()
-    data_set = DataPrepare(logger=logger, data=source_data).preparing()
+    data_set = DataPrepare(logger=logger)
     train_set = data_set[:-1]
     test_set = data_set[-1:]
     train_data = MyDataSet(train_set)
