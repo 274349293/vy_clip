@@ -52,6 +52,10 @@ print("Input resolution:", input_resolution)
 print("Context length:", context_length)
 print("Vocab size:", vocab_size)
 
+for x in model.state_dict():
+    if x == "text_projection":
+        print(x, model.state_dict()["text_projection"].shape[1])
+        exit()
 from torchvision.transforms import Compose, Resize, CenterCrop, ToTensor, Normalize
 from PIL import Image
 

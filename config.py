@@ -64,9 +64,9 @@ MULTI_GPU = False
 
 # PRETRAINED_MODEL_PATH = './generation/tags/v2/output_model/checkpoint-2021-03-02-11-28-01/'
 # PRETRAINED_MODEL_PATH = './generation/tags/v2/output_model/checkpoint-5-2021-04-09-11-29-21/'
-PRETRAINED_MODEL_PATH = './output_model/checkpoint-7-2021-05-25-13-53-07/'
+# PRETRAINED_MODEL_PATH = './output_model/checkpoint-7-2021-05-25-13-53-07/'
 
-# PRETRAINED_MODEL_PATH = None  # '预训练的GPT2模型的路径', GPT2介于预训练直接做任务之间，是否需要预训练未知
+PRETRAINED_MODEL_PATH = None  # '预训练的GPT2模型的路径', GPT2介于预训练直接做任务之间，是否需要预训练未知
 EPOCHS = 50
 TRAIN_BATCH_SIZE = 12
 TEST_BATCH_SIZE = 8

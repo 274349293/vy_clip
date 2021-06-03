@@ -9,10 +9,10 @@ from tqdm import tqdm, trange
 from torch.utils.tensorboard import SummaryWriter
 import torch.backends.cudnn
 import time
-
+from torch import nn
 from data_helper import MyDataSet, collate_func, DataPrepare
 import config as hyper_args
-from model import build_model
+from model import CLIP
 from utils.task_logger import TaskLogger
 from utils.data_io import mkdir
 
@@ -108,12 +108,11 @@ class TrainModel:
                 input_ids = batch["input_ids"].to(hyper_args.DEVICE_TYPE if torch.cuda.is_available() else "cpu")
                 token_type_ids = batch["token_type_ids"].to(
                     hyper_args.DEVICE_TYPE if torch.cuda.is_available() else "cpu")
-                image_feature = batch["image_feature"]
+                image_feature = batch["input_image"]
                 image_index = batch["image_index"]
 
                 # 获取训练结果
-                outputs = self.model.forward(input_ids=input_ids, token_type_ids=token_type_ids, labels=input_ids,
-                                             tags_id=title_id, image_feature=image_feature, image_index=image_index)
+                outputs = self.model.forward()
                 loss = outputs[0]
                 tr_loss += loss.item()
                 epoch_avg_loss += loss.item()
@@ -200,11 +199,80 @@ class TrainModel:
         return test_loss
 
 
+def convert_weights(model: nn.Module):
+    """Convert applicable model parameters to fp16"""
+
+    def _convert_weights_to_fp16(l):
+        if isinstance(l, (nn.Conv1d, nn.Conv2d, nn.Linear)):
+            l.weight.data = l.weight.data.half()
+            if l.bias is not None:
+                l.bias.data = l.bias.data.half()
+
+        if isinstance(l, nn.MultiheadAttention):
+            for attr in [*[f"{s}_proj_weight" for s in ["in", "q", "k", "v"]], "in_proj_bias", "bias_k", "bias_v"]:
+                tensor = getattr(l, attr)
+                if tensor is not None:
+                    tensor.data = tensor.data.half()
+
+        for name in ["text_projection", "proj"]:
+            if hasattr(l, name):
+                attr = getattr(l, name)
+                if attr is not None:
+                    attr.data = attr.data.half()
+
+    model.apply(_convert_weights_to_fp16)
+
+
+def build_model():
+    model_eval = torch.jit.load("model.pt").cuda().eval()
+    state_dict = model_eval.state_dict()
+    vit = "visual.proj" in state_dict
+
+    if vit:
+        vision_width = state_dict["visual.conv1.weight"].shape[0]
+        vision_layers = len(
+            [k for k in state_dict.keys() if k.startswith("visual.") and k.endswith(".attn.in_proj_weight")])
+        vision_patch_size = state_dict["visual.conv1.weight"].shape[-1]
+        grid_size = round((state_dict["visual.positional_embedding"].shape[0] - 1) ** 0.5)
+        image_resolution = vision_patch_size * grid_size
+    else:
+        counts: list = [len(set(k.split(".")[2] for k in state_dict if k.startswith(f"visual.layer{b}"))) for b in
+                        [1, 2, 3, 4]]
+        vision_layers = tuple(counts)
+        vision_width = state_dict["visual.layer1.0.conv1.weight"].shape[0]
+        output_width = round((state_dict["visual.attnpool.positional_embedding"].shape[0] - 1) ** 0.5)
+        vision_patch_size = None
+        assert output_width ** 2 + 1 == state_dict["visual.attnpool.positional_embedding"].shape[0]
+        image_resolution = output_width * 32
+
+    embed_dim = state_dict["text_projection"].shape[1]
+    context_length = state_dict["positional_embedding"].shape[0]
+    vocab_size = state_dict["token_embedding.weight"].shape[0]
+    transformer_width = state_dict["ln_final.weight"].shape[0]
+    transformer_heads = transformer_width // 64
+    transformer_layers = len(set(k.split(".")[2] for k in state_dict if k.startswith(f"transformer.resblocks")))
+
+    model = CLIP(
+        embed_dim,
+        image_resolution, vision_layers, vision_width, vision_patch_size,
+        context_length, vocab_size, transformer_width, transformer_heads, transformer_layers
+    )
+
+    for key in ["input_resolution", "context_length", "vocab_size"]:
+        if key in state_dict:
+            del state_dict[key]
+
+    convert_weights(model)
+    model.load_state_dict(state_dict)
+    return model
+
+
 def train():
     logger = TaskLogger(task_name='train vl multi tags', log_root=None).root_logger
 
     # 加载训练数据和测试数据
     data_set = DataPrepare(logger=logger)
+    data_set = data_set.tokenized_data
     train_set = data_set[:-1]
     test_set = data_set[-1:]
     train_data = MyDataSet(train_set)
@@ -214,7 +282,9 @@ def train():
     os.environ["CUDA_VISIBLE_DEVICE"] = hyper_args.DEVICE_IDs
     # 实例化GPT2LMHeadModel模型，这里我们没有加载预训练好的模型，而是直接从头开始训练。
     # 判断是否使用预训练好的GPT2模型
-    model = build_model().load_model()
+
+    model = build_model()
+
     # 创建模型的输出目录
     mkdir(hyper_args.MODEL_OUTPUT_PATH)
 

@@ -1,4 +1,4 @@
-from generation.tags.visual_linguistic import config as hyper_args
+import config as hyper_args
 from torch.nn import DataParallel
 from transformers.models.gpt2.modeling_gpt2 import GPT2PreTrainedModel, GPT2Config
 import torch

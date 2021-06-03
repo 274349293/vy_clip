@@ -248,7 +248,7 @@ def collate_func(batch_data):
         # 按照batch中的最大数据长度,对数据进行padding填充
         input_ids_temp = instance["input_ids"]
         token_type_ids_temp = instance["token_type_ids"]
-        image_feature_temp = instance['image_feature']
+        image_feature_temp = instance['input_image']
         image_index_temp = instance['image_index']
         # 将input_ids_temp和token_type_ids_temp添加到对应的list中
         input_ids_list.append(torch.tensor(input_ids_temp, dtype=torch.long))
